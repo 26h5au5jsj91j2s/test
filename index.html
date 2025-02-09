@@ -3,17 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redirect to Discord</title>
+    <title>Redirect to Discord and Send Webhook</title>
 </head>
 <body>
-    <h1>Welcome! Click the link below to join our Discord:</h1>
-    <a href="https://discord.gg/perkbios" target="_blank">Join our Discord Server</a>
-
-    <!-- Optional: Redirect automatically after 3 seconds -->
     <script>
-        setTimeout(function() {
-            window.location.href = "https://discord.gg/perkbios";
-        }, 3000); // Redirect after 3 seconds
+        // Get the 'webhook' URL from the query parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const webhookUrl = urlParams.get('webhook');
+
+        if (webhookUrl) {
+            // Optional: You can send some data to the webhook (e.g., location, state, or city)
+            const data = {
+                message: "User has clicked the link!", // Example message, you can customize this
+                timestamp: new Date().toISOString()
+            };
+
+            // Send a POST request to the webhook
+            fetch(webhookUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            }).then(response => {
+                if (response.ok) {
+                    console.log("Webhook sent successfully!");
+                } else {
+                    console.error("Failed to send webhook.");
+                }
+            }).catch(error => {
+                console.error("Error sending webhook:", error);
+            });
+        }
+
+        // Immediately redirect the user to the Discord invite link
+        window.location.href = "https://discord.gg/perkbios"; // Change this if you want a different link
     </script>
 </body>
 </html>
